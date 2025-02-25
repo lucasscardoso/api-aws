@@ -1,0 +1,78 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  api-aws
+
+  Sample SAM Template for api-aws
+
+
+Globals:
+  Function:
+    Timeout: 3
+
+    
+    LoggingConfig:
+      LogFormat: JSON
+Resources:
+  BucketUploadImageEcomerce:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AWS::AccountId}-${AWS::Region}-upload-image-ecomerce"
+    
+          
+  CreatPresignedUrlFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: presignedUrl/
+      Handler: app.lambda_handler
+      Runtime: python3.13
+      Architectures:
+      - x86_64
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref BucketUploadImageEcomerce
+      
+
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref BucketUploadImageEcomerce
+      Events:
+        ApiEcommerce:
+          Type: Api 
+          Properties:
+            Path: /presigned-url
+            Method: get
+
+  CategorizeImageFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: categorize/
+      Handler: app.lambda_handler
+      Runtime: python3.13
+      Architectures:
+      - x86_64
+      Environment:
+        Variables:
+          SQS_URL: !Ref DetectedLabelQueue  
+      Policies:
+        - RekognitionDetectOnlyPolicy: {}
+        - S3CrudPolicy:
+            BucketName: !Ref BucketUploadImageEcomerce
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt DetectedLabelQueue.QueueName
+
+  DetectedLabelQueue:
+    Type: AWS::SQS::Queue
+             
+   
+Outputs:
+
+  ApiEcommerce:
+    Description: API Gateway endpoint URL for Prod stage for Hello World function
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/presigned-url/"
+  CreatPresignedUrlFunction:
+    Description: Creat Presigned Url Function Function ARN
+    Value: !GetAtt CreatPresignedUrlFunction.Arn
+  CreatPresignedUrlFunctionIamRole:
+    Description: Implicit IAM Role created for function
+    Value: !GetAtt CreatPresignedUrlFunction.Arn
