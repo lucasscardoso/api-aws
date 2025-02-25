@@ -77,12 +77,11 @@ Resources:
           MODEL_ID: us.anthropic.claude-3-5-haiku-20241022-v1:0
           PROMPT_TITLE: "Analise a imagem e gere um titulo com base nas labels(etiquetas) que você vai receber, precisa ser um nome que seja especifico sobre o produto e chamativo, você vai precisar assumir o papel de especialista de marketing digital e direitos autorais, esse titulo precisa ser em português pt br, lembrando deixe claro o que é o produto em seu titulo e retorne somente o titulo, labels(etiquetas): " 
           PROMPT_DESCRIPTION: "a"
-
       Policies:
         - Statement:
             - Effect: Allow
               Action:
-                - bedrock:IvokeModel
+                - bedrock:InvokeModel
               Resource: "*"             
         - SQSPollerPolicy:
             QueueName: !GetAtt DetectedLabelQueue.QueueName  

@@ -48,7 +48,7 @@ def lambda_handler(event, context):
             
             labels = message_body.get('labels',{})
             
-            prompt_title_final = f"{prompt_title}  Clothing, Shirt, T-Shirt"
+            prompt_title_final = f"{prompt_title}  {', '.join(labels.keys())}"
             
             response = invoke_bedrock(prompt_title_final)
             
