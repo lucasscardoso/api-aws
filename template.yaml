@@ -8,7 +8,8 @@ Description: >
 
 Globals:
   Function:
-    Timeout: 3
+    Timeout: 15
+    MemorySize: 128
 
     
     LoggingConfig:
@@ -64,6 +65,9 @@ Resources:
   DetectedLabelQueue:
     Type: AWS::SQS::Queue
 
+  ContentDeliveryNotifictionTopic:
+    Type: AWS::SNS::Topic
+
   GenerateContentFunction:
     Type: AWS::Serverless::Function 
     Properties:
@@ -76,7 +80,9 @@ Resources:
         Variables:
           MODEL_ID: us.anthropic.claude-3-5-haiku-20241022-v1:0
           PROMPT_TITLE: "Analise a imagem e gere um titulo com base nas labels(etiquetas) que você vai receber, precisa ser um nome que seja especifico sobre o produto e chamativo, você vai precisar assumir o papel de especialista de marketing digital e direitos autorais, esse titulo precisa ser em português pt br, lembrando deixe claro o que é o produto em seu titulo e retorne somente o titulo, labels(etiquetas): " 
-          PROMPT_DESCRIPTION: "a"
+          PROMPT_DESCRIPTION: "Analise as labels(etiquetas) que você vai receber e gere uma descrição dos beneficios e qualidades do produto,seja especifico sobre o produto e chamativo, você vai precisar assumir o papel de especialista de marketing digital e direitos autorais, essa descrição precisa ser em português pt br, gere no maximo 20 caracteres, utilize o titulo:  "
+          TABLE_NAME: !Ref BedrockMetadataImagesS3table
+          SNS_TOPIC_ARN: !Ref ContentDeliveryNotifictionTopic
       Policies:
         - Statement:
             - Effect: Allow
@@ -85,11 +91,21 @@ Resources:
               Resource: "*"             
         - SQSPollerPolicy:
             QueueName: !GetAtt DetectedLabelQueue.QueueName  
+        - DynamoDBCrudPolicy:
+            TableName: !Ref BedrockMetadataImagesS3table  
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt ContentDeliveryNotifictionTopic.TopicName      
       Events:
         SQSEvent:
           Type: SQS
           Properties:
             Queue: !GetAtt DetectedLabelQueue.Arn  
+  BedrockMetadataImagesS3table:
+    Type: AWS::Serverless::SimpleTable
+    Properties:      
+      PrimaryKey:
+        Name: id
+        Type: String    
 
 Outputs:
 
