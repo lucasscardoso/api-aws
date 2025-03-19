@@ -20,13 +20,8 @@ Resources:
     Properties:
       BucketName: !Sub "${AWS::AccountId}-${AWS::Region}-upload-image-ecomerce"
   
-  ProductIdsTable:
-    Type: AWS::Serverless::SimpleTable
-    Properties:
-      TableName: ProductIdsTable
-      PrimaryKey:
-        Name: id
-        Type: String
+
+    
     
           
   CreatPresignedUrlFunction:
@@ -72,7 +67,7 @@ Resources:
 
   DetectedLabelQueue:
     Type: AWS::SQS::Queue
-
+ 
   ContentDeliveryNotifictionTopic:
     Type: AWS::SNS::Topic
 
@@ -115,6 +110,26 @@ Resources:
         Name: id
         Type: String    
 
+  GetAllProducts:
+        Type: AWS::Serverless::Function
+        Properties:
+            CodeUri: DbContent/
+            Handler: app.lambda_handler
+            Runtime: python3.13
+            Policies:
+                - DynamoDBReadPolicy:
+                    TableName: !Ref BedrockMetadataImagesS3table
+            Events:
+                Api:
+                    Type: Api
+                    Properties:
+                        Path: /products
+                        Method: GET
+            Environment:
+                Variables:
+                    TABLE_NAME: !Ref BedrockMetadataImagesS3table
+              
+    
 Outputs:
 
   ApiEcommerce:
@@ -126,3 +141,6 @@ Outputs:
   CreatPresignedUrlFunctionIamRole:
     Description: Implicit IAM Role created for function
     Value: !GetAtt CreatPresignedUrlFunction.Arn
+  GetAllProducts: 
+    Description: Get All Products Function ARN
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/products/"
