@@ -128,7 +128,25 @@ Resources:
             Environment:
                 Variables:
                     TABLE_NAME: !Ref BedrockMetadataImagesS3table
-              
+
+  GetProductById:
+        Type: AWS::Serverless::Function
+        Properties:
+          CodeUri: DbContent/
+          Handler: app.lambda_handler
+          Runtime: python3.13
+          Policies:
+            - DynamoDBReadPolicy:
+                TableName: !Ref BedrockMetadataImagesS3table
+          Events:
+            Api:
+              Type: Api
+              Properties:
+                Path: /products/{id}
+                Method: GET 
+          Environment:
+                Variables:
+                    TABLE_NAME: !Ref BedrockMetadataImagesS3table                  
     
 Outputs:
 
