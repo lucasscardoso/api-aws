@@ -8,7 +8,7 @@ Description: >
 
 Globals:
   Function:
-    Timeout: 15
+    Timeout: 35
     MemorySize: 128
 
     
@@ -20,10 +20,89 @@ Resources:
     Properties:
       BucketName: !Sub "${AWS::AccountId}-${AWS::Region}-upload-image-ecomerce"
   
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: UsersCognito
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
 
-    
-    
-          
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: CadClientUserPool
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      Schema:
+        - Name: email
+          Required: true
+        - Name: birthdate
+          AttributeDataType: String
+          Mutable: true
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+          RequireUppercase: true
+      VerificationMessageTemplate:
+        DefaultEmailOption: CONFIRM_WITH_LINK
+        EmailSubject: 'Confirme seu cadastro'
+        EmailMessage: 'Clique no link para confirmar seu cadastro e seguir com seu Login! {####}'
+      LambdaConfig:
+        PostConfirmation: !GetAtt RegisterUserFunction.Arn
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref UserPool
+      ClientName: AwsAppDesafioClient
+      AllowedOAuthFlowsUserPoolClient: true
+      CallbackURLs:
+        - 'https://d84hoc2mx2h5u.cloudfront.net'
+      LogoutURLs:
+        - 'https://appuploadfotos.auth.us-east-2.amazoncognito.com/login?client_id=56mqhid3utemfik3scev2kee87&redirect_uri=https://d84hoc2mx2h5u.cloudfront.net&response_type=code&scope=email+openid+phone+profile'
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthScopes:
+        - phone
+        - email
+        - openid
+        - profile
+      SupportedIdentityProviders:
+        - COGNITO 
+
+  RegisterUserFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref RegisterUserFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt UserPool.Arn
+  
+
+  RegisterUserFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: registerUser/
+      Handler: app.lambda_handler
+      Runtime: python3.13
+      Environment:
+        Variables:
+          USERS_TABLE_NAME: !Ref UsersTable
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref UsersTable
+
+
   CreatPresignedUrlFunction:
     Type: AWS::Serverless::Function 
     Properties:
@@ -83,7 +162,7 @@ Resources:
         Variables:
           MODEL_ID: us.anthropic.claude-3-5-haiku-20241022-v1:0
           PROMPT_TITLE: "Analise a imagem e gere um titulo com base nas labels(etiquetas) que você vai receber, precisa ser um nome que seja especifico sobre o produto e chamativo, você vai precisar assumir o papel de especialista de marketing digital e direitos autorais, esse titulo precisa ser em português pt br, lembrando deixe claro o que é o produto em seu titulo e retorne somente o titulo, labels(etiquetas): " 
-          PROMPT_DESCRIPTION: "Analise as labels(etiquetas) que você vai receber e gere uma descrição dos beneficios e qualidades do produto,seja especifico sobre o produto e chamativo, você vai precisar assumir o papel de especialista de marketing digital e direitos autorais, essa descrição precisa ser em português pt br, gere no maximo 20 caracteres, utilize o titulo:  "
+          PROMPT_DESCRIPTION: "Analise as labels(etiquetas) que você vai receber e gere uma descrição dos beneficios e qualidades do produto,seja especifico sobre o produto e chamativo, você vai precisar assumir o papel de especialista de marketing digital e direitos autorais, essa descrição precisa ser em português pt br, gere no maximo 20 caracteres, nao use emojis, utilize o titulo:  "
           TABLE_NAME: !Ref BedrockMetadataImagesS3table
           SNS_TOPIC_ARN: !Ref ContentDeliveryNotifictionTopic
       Policies:

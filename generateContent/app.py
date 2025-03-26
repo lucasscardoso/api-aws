@@ -46,7 +46,7 @@ def invoke_bedrock(prompt):
     # Função para invocar o modelo de Machine Learning criado no Bedrock
     request = {
         "anthropic_version": "bedrock-2023-05-31",
-        "max_tokens": 500,
+        "max_tokens": 100,
         "temperature": 0.5,
         "messages":[
             {
